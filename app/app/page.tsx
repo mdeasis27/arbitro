@@ -1,20 +1,82 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Alert } from "@/design-system/components/alert";
+import { Card } from "@/design-system/components/card";
 import { MetricCard } from "@/design-system/components/metric-card";
 import { StatusBadge } from "@/design-system/components/status-badge";
-import { getBenchmark, getCaseVerdicts, getThreshold } from "@/lib/arbitro/demo";
+import { arbitrate } from "@/lib/arbitro/arbitrate";
+import type { Case, Verdict } from "@/lib/arbitro/types";
+import { getBenchmark } from "@/lib/arbitro/demo";
 
 const BENCH = getBenchmark();
-const VERDICTS = getCaseVerdicts();
-const THRESHOLD = getThreshold();
+const LABELS = ["approve", "deny", "review"] as const;
+type Label = (typeof LABELS)[number];
 
 function pct(v: number) {
-  return `${(v * 100).toFixed(1)}%`;
+  return `${(v * 100).toFixed(0)}%`;
+}
+
+function ModelControls({
+  name,
+  value,
+  onChange,
+}: {
+  name: string;
+  value: { label: Label; confidence: number };
+  onChange: (v: { label: Label; confidence: number }) => void;
+}) {
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          Modelo {name}
+        </span>
+        <span className="font-mono text-sm text-foreground">{value.label}</span>
+      </div>
+      <select
+        value={value.label}
+        onChange={(e) => onChange({ ...value, label: e.target.value as Label })}
+        className="mb-3 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/60"
+      >
+        {LABELS.map((l) => (
+          <option key={l} value={l}>
+            {l}
+          </option>
+        ))}
+      </select>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-muted-foreground">Confianza</span>
+        <span className="font-mono text-xs tabular-nums text-foreground">
+          {value.confidence.toFixed(2)}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.01}
+        value={value.confidence}
+        onChange={(e) => onChange({ ...value, confidence: Number(e.target.value) })}
+        className="w-full accent-foreground"
+      />
+    </Card>
+  );
 }
 
 export default function AppPage() {
+  const [a, setA] = useState<{ label: Label; confidence: number }>({ label: "approve", confidence: 0.9 });
+  const [b, setB] = useState<{ label: Label; confidence: number }>({ label: "approve", confidence: 0.85 });
+  const [c, setC] = useState<{ label: Label; confidence: number }>({ label: "deny", confidence: 0.7 });
+  const [threshold, setThreshold] = useState(0.6);
+  const [result, setResult] = useState<Verdict | null>(null);
+
+  function run() {
+    const caseObj: Case = { id: "custom", gold: "", a, b, c };
+    setResult(arbitrate(caseObj, threshold));
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-background/80 backdrop-blur-md">
@@ -51,89 +113,88 @@ export default function AppPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-10">
-        {/* ── SUMMARY BAR ─────────────────────── */}
+        {/* ── SUMMARY ─────────────────────────── */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <MetricCard
-            label="Acuerdo entre modelos"
-            value={pct(BENCH.agreement)}
-            hint="pairwise medio (a·b·c)"
-            tone="info"
-          />
-          <MetricCard
-            label="Escalado a humano"
-            value={pct(BENCH.escalationRate)}
-            hint="sin consenso claro"
-            tone="warning"
-          />
-          <MetricCard
-            label="Precisión del arbitraje"
-            value={pct(BENCH.arbitrationAccuracy)}
-            hint={`${BENCH.arbitratedCorrect}/${BENCH.arbitrated} correctos`}
-            tone="success"
-          />
-          <MetricCard
-            label="Umbral de confianza"
-            value={THRESHOLD}
-            hint="para mayoría 2-vs-1"
-            tone="neutral"
-          />
+          <MetricCard label="Acuerdo entre modelos" value={pct(BENCH.agreement)} hint="pairwise medio" tone="info" />
+          <MetricCard label="Escalado a humano" value={pct(BENCH.escalationRate)} hint="sin consenso claro" tone="warning" />
+          <MetricCard label="Precisión del arbitraje" value={pct(BENCH.arbitrationAccuracy)} hint={`${BENCH.arbitratedCorrect}/${BENCH.arbitrated} correctos`} tone="success" />
+          <MetricCard label="Umbral de confianza" value={BENCH.n === 0 ? 0 : 0.6} hint="para mayoría 2-vs-1" tone="neutral" />
         </div>
 
-        {/* ── CASES ───────────────────────────── */}
+        {/* ── PLAYGROUND ──────────────────────── */}
         <section>
-          <h2 className="text-lg font-semibold tracking-tight text-foreground mb-1">Casos y veredictos</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-foreground mb-1">Arbitraje en vivo</h2>
           <p className="text-sm text-muted-foreground mb-5">
-            Tres modelos votan {""}approve / deny / review{""}. Unánime arbitra; mayoría 2-vs-1
-            arbitra solo si la confianza media supera el umbral; empate a tres vías escala. Los
-            casos c21–c22 muestran el límite: una mayoría confiada que se equivoca.
+            Configura el veredicto y la confianza de tres modelos y ejecuta el árbitro. Prueba un
+            empate a tres vías, o una mayoría frágil (2 votos con confianza bajo el umbral).
           </p>
-          <div className="overflow-x-auto rounded-[var(--radius-md)] shadow-[var(--shadow-card)] bg-card">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--gray-50)]">
-                  <th scope="col" className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Caso</th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">a</th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">b</th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">c</th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">gold</th>
-                  <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Veredicto</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {VERDICTS.map((c) => {
-                  const isWrong = c.verdict.outcome === "arbitrated" && c.verdict.label !== c.gold;
-                  const isEscalated = c.verdict.outcome === "escalated";
-                  return (
-                    <tr key={c.id}>
-                      <td className="px-5 py-3 font-mono text-xs text-muted-foreground">{c.id}</td>
-                      <td className="px-3 py-3 font-semibold text-foreground">{c.a}</td>
-                      <td className="px-3 py-3 font-semibold text-foreground">{c.b}</td>
-                      <td className="px-3 py-3 font-semibold text-foreground">{c.c}</td>
-                      <td className="px-3 py-3 text-muted-foreground">{c.gold}</td>
-                      <td className="px-4 py-3 text-right">
-                        {isEscalated ? (
-                          <StatusBadge tone="warning">escalado</StatusBadge>
-                        ) : isWrong ? (
-                          <StatusBadge tone="danger">mayoría errónea</StatusBadge>
-                        ) : (
-                          <StatusBadge tone="success">{c.verdict.label}</StatusBadge>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <ModelControls name="a" value={a} onChange={setA} />
+            <ModelControls name="b" value={b} onChange={setB} />
+            <ModelControls name="c" value={c} onChange={setC} />
           </div>
+
+          <Card className="mt-4 p-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm text-foreground">Umbral de confianza</span>
+              <span className="font-mono text-sm tabular-nums text-foreground">{threshold.toFixed(2)}</span>
+            </div>
+            <input
+              type="range"
+              min={0.5}
+              max={0.9}
+              step={0.01}
+              value={threshold}
+              onChange={(e) => setThreshold(Number(e.target.value))}
+              className="w-full accent-foreground"
+            />
+            <button
+              onClick={run}
+              className="mt-3 w-full rounded-[var(--radius-md)] bg-accent px-4 py-2.5 text-sm font-medium text-[#ffffff] hover:bg-accent/90 transition-colors"
+            >
+              Ejecutar arbitraje
+            </button>
+          </Card>
+
+          {result && (
+            <Card className="mt-4 p-5">
+              <div className="flex items-center gap-3">
+                {result.outcome === "arbitrated" ? (
+                  <StatusBadge tone="success" dot>arbitrado</StatusBadge>
+                ) : (
+                  <StatusBadge tone="warning" dot>escalado a humano</StatusBadge>
+                )}
+                <span className="text-sm text-muted-foreground">
+                  {result.outcome === "arbitrated"
+                    ? `Veredicto: ${result.label}`
+                    : "Sin consenso claro — requiere revisión humana"}
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Votos</p>
+                  <p className="font-semibold text-foreground">{result.votes}/3</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Confianza media</p>
+                  <p className="font-semibold text-foreground">{result.confidence.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Umbral</p>
+                  <p className="font-semibold text-foreground">{threshold.toFixed(2)}</p>
+                </div>
+              </div>
+            </Card>
+          )}
         </section>
 
         {/* ── RULE NOTE ───────────────────────── */}
         <section>
           <Alert tone="info" title="La regla de arbitraje">
             Unánime → arbitra. Mayoría 2-vs-1 → arbitra solo si la confianza media de la etiqueta
-            ganadora ≥ {THRESHOLD}; si no, escala. Empate → escala. La confianza es la señal que
-            distingue un acuerdo real de uno frágil, y el escalado a humano es exactamente donde se
-            paga el coste de no saber.
+            ganadora ≥ umbral; si no, escala. Empate a tres vías → escala. La confianza distingue
+            un acuerdo real de uno frágil, y el escalado es donde se paga el coste de no saber.
           </Alert>
         </section>
 
