@@ -1,18 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Alert } from "@/design-system/components/alert";
 import { Card } from "@/design-system/components/card";
 import { MetricCard } from "@/design-system/components/metric-card";
 import { StatusBadge } from "@/design-system/components/status-badge";
-import { arbitrate } from "@/lib/arbitro/arbitrate";
-import type { Case, Verdict } from "@/lib/arbitro/types";
+import type { Verdict } from "@/lib/arbitro/types";
 import { getBenchmark } from "@/lib/arbitro/demo";
 
 const BENCH = getBenchmark();
 const LABELS = ["approve", "deny", "review"] as const;
 type Label = (typeof LABELS)[number];
+
+interface VerdictHistoryItem {
+  id: number;
+  a_label: string;
+  b_label: string;
+  c_label: string;
+  confidence: number;
+  threshold: number;
+  outcome: string;
+  label: string | null;
+  created_at: string;
+}
 
 function pct(v: number) {
   return `${(v * 100).toFixed(0)}%`;
@@ -71,11 +82,49 @@ export default function AppPage() {
   const [c, setC] = useState<{ label: Label; confidence: number }>({ label: "deny", confidence: 0.7 });
   const [threshold, setThreshold] = useState(0.6);
   const [result, setResult] = useState<Verdict | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<VerdictHistoryItem[]>([]);
 
-  function run() {
-    const caseObj: Case = { id: "custom", gold: "", a, b, c };
-    setResult(arbitrate(caseObj, threshold));
+  async function run() {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await fetch("/api/arbitrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ a, b, c, threshold }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Error ejecutando el arbitraje");
+      } else {
+        setResult(data);
+        loadHistory();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error de red");
+    } finally {
+      setLoading(false);
+    }
   }
+
+  async function loadHistory() {
+    try {
+      const res = await fetch("/api/history");
+      if (res.ok) {
+        const data = await res.json();
+        setHistory(data.verdicts ?? []);
+      }
+    } catch {
+      /* history is best-effort */
+    }
+  }
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -105,9 +154,7 @@ export default function AppPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <StatusBadge tone="info" dot className="px-3 py-1">
-              Demo mode
-            </StatusBadge>
+            <StatusBadge tone="success" dot className="px-3 py-1">Postgres en vivo</StatusBadge>
           </div>
         </div>
       </header>
@@ -118,15 +165,16 @@ export default function AppPage() {
           <MetricCard label="Acuerdo entre modelos" value={pct(BENCH.agreement)} hint="pairwise medio" tone="info" />
           <MetricCard label="Escalado a humano" value={pct(BENCH.escalationRate)} hint="sin consenso claro" tone="warning" />
           <MetricCard label="Precisión del arbitraje" value={pct(BENCH.arbitrationAccuracy)} hint={`${BENCH.arbitratedCorrect}/${BENCH.arbitrated} correctos`} tone="success" />
-          <MetricCard label="Umbral de confianza" value={BENCH.n === 0 ? 0 : 0.6} hint="para mayoría 2-vs-1" tone="neutral" />
+          <MetricCard label="Umbral de confianza" value={0.6} hint="para mayoría 2-vs-1" tone="neutral" />
         </div>
 
         {/* ── PLAYGROUND ──────────────────────── */}
         <section>
           <h2 className="text-lg font-semibold tracking-tight text-foreground mb-1">Arbitraje en vivo</h2>
           <p className="text-sm text-muted-foreground mb-5">
-            Configura el veredicto y la confianza de tres modelos y ejecuta el árbitro. Prueba un
-            empate a tres vías, o una mayoría frágil (2 votos con confianza bajo el umbral).
+            Configura el veredicto y la confianza de tres modelos y ejecuta el árbitro en el
+            backend. Prueba un empate a tres vías, o una mayoría frágil (2 votos con confianza
+            bajo el umbral). Cada veredicto queda persistido en Postgres.
           </p>
 
           <div className="grid gap-4 sm:grid-cols-3">
@@ -151,11 +199,18 @@ export default function AppPage() {
             />
             <button
               onClick={run}
-              className="mt-3 w-full rounded-[var(--radius-md)] bg-accent px-4 py-2.5 text-sm font-medium text-[#ffffff] hover:bg-accent/90 transition-colors"
+              disabled={loading}
+              className="mt-3 w-full rounded-[var(--radius-md)] bg-accent px-4 py-2.5 text-sm font-medium text-[#ffffff] hover:bg-accent/90 transition-colors disabled:opacity-50"
             >
-              Ejecutar arbitraje
+              {loading ? "Ejecutando…" : "Ejecutar arbitraje"}
             </button>
           </Card>
+
+          {error && (
+            <div className="mt-4 rounded-[var(--radius-md)] border border-danger/25 bg-danger/10 p-4 text-sm text-foreground">
+              {error}
+            </div>
+          )}
 
           {result && (
             <Card className="mt-4 p-5">
@@ -189,6 +244,41 @@ export default function AppPage() {
           )}
         </section>
 
+        {/* ── HISTORY ─────────────────────────── */}
+        {history.length > 0 && (
+          <section>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Historial de veredictos (persistido en Postgres)</h3>
+            <div className="overflow-x-auto rounded-[var(--radius-md)] shadow-[var(--shadow-card)] bg-card">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)] bg-[var(--gray-50)]">
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">A / B / C</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resultado</th>
+                    <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Confianza</th>
+                    <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Umbral</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {history.map((h) => (
+                    <tr key={h.id}>
+                      <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                        {h.a_label} / {h.b_label} / {h.c_label}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <StatusBadge tone={h.outcome === "arbitrated" ? "success" : "warning"}>
+                          {h.outcome === "arbitrated" ? h.label : "escalado"}
+                        </StatusBadge>
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-foreground">{Number(h.confidence).toFixed(2)}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-foreground">{Number(h.threshold).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
         {/* ── RULE NOTE ───────────────────────── */}
         <section>
           <Alert tone="info" title="La regla de arbitraje">
@@ -199,7 +289,7 @@ export default function AppPage() {
         </section>
 
         <footer className="pt-8 border-t border-[var(--border)] flex items-center justify-between text-xs text-muted-foreground">
-          <span>Arbitro · LLM output arbitration · Demo mode</span>
+          <span>Arbitro · LLM output arbitration · Backend + Postgres</span>
           <a href="https://github.com/mdeasis27/arbitro" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors font-mono">GitHub</a>
         </footer>
       </div>
