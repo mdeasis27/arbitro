@@ -1,0 +1,46 @@
+{
+  "repository": "arbitro",
+  "checks": [
+    {
+      "locale": "en",
+      "htmlLang": "en",
+      "buttons": [
+        "Arbitrate votes",
+        "Cancel",
+        "Reset"
+      ],
+      "inputs": 7,
+      "clicked": "Arbitrate votes",
+      "traceEvents": 4,
+      "keyboardFocus": "SELECT",
+      "editingInvalidatesEvidence": true,
+      "resetClearsResult": true,
+      "cancelUsable": true,
+      "languageSwitchWithoutStorage": true
+    },
+    {
+      "locale": "es",
+      "htmlLang": "es",
+      "buttons": [
+        "Arbitrar votos",
+        "Cancelar",
+        "Reiniciar"
+      ],
+      "inputs": 7,
+      "clicked": "Arbitrar votos",
+      "traceEvents": 4,
+      "keyboardFocus": "SELECT",
+      "editingInvalidatesEvidence": true,
+      "resetClearsResult": true,
+      "cancelUsable": true,
+      "languageSwitchWithoutStorage": true
+    }
+  ],
+  "errors": [],
+  "legacyRedirectRetainsQuery": true,
+  "unsupportedLocale404": true,
+  "translatedBodyDiffers": true,
+  "reducedMotionDisablesPlayback": true,
+  "mobileNoOverflow": true,
+  "noExternalOrApiRequests": true
+}

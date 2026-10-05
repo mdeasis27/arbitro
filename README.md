@@ -1,83 +1,79 @@
-# Arbitro
+# Candidate arbitration
 
-**LLM output arbitration** — three models vote, a deterministic arbitrator picks a winner or
-escalates to a human when there is no clear consensus.
+[Español](README.es.md) · [Try the demo](https://arbitro-manueldeasis27-2515s-projects.vercel.app/en/app) · [Case study](https://manueldeasis.com/en/projects/arbitro) · [Source](https://github.com/mdeasis27/arbitro)
 
-> **Result:** the three models agree **66.7%** of the time (mean pairwise agreement). The
-> arbitrator resolves **18 of 22** cases with **88.9%** accuracy (16/18), and **escalates the
-> other 18.2%** to a human — the thin majorities and 3-way splits where a confident guess would
-> be a liability. The two arbitrated errors are exactly the cases where a *confident* majority
-> outvoted the correct minority.
+![Actual interactive local interface](docs/images/cover.png)
 
----
+Supply labels and confidence values and change the escalation threshold.
 
-## Result
+## Two situations to compare
 
-| Metric | Value |
-|---|---|
-| Pairwise agreement (a·b·c) | **66.7%** |
-| Arbitrated | 18 / 22 |
-| Arbitration accuracy | **88.9%** (16 / 18) |
-| Escalated to human | **18.2%** (4 / 22) |
+**Consensus:** Three approve ballots at confidence 0.90, 0.80, 0.70; threshold 0.60. Aligned ballots resolve locally.
 
-The escalation set is not random: it is precisely the 2 thin majorities (winning label at 0.55
-confidence, below the 0.6 threshold) and the 2 three-way splits. The arbitrated errors (c21,
-c22) are the honest limit of majority voting — two models agree, both are wrong, and the
-arbitrator has no signal that overrules them.
+![Consensus](docs/images/scenario-a.png)
 
----
+**Disagreement:** Approve / deny / review at 0.90 / 0.55 / 0.55; threshold 0.80. Divergent ballots escalate to review.
+
+![Disagreement](docs/images/scenario-b.png)
+
+## Business use case
+
+Candidate recommendations can disagree without a safe automatic resolution.
+
+**Who uses it:** Decision operator handling ambiguous cases.
+
+**The decision:** Resolve a case locally or send it to human review.
+
+Choose consensus or disagreement, inspect local ballots and confidence labels, then resolve or escalate the case.
+
+### Try the decision
+
+**Consensus:** Three approve ballots at confidence 0.90, 0.80, 0.70; threshold 0.60. Aligned ballots resolve locally.
+
+**Disagreement:** Approve / deny / review at 0.90 / 0.55 / 0.55; threshold 0.80. Divergent ballots escalate to review.
+
+Choose a scenario, edit its controls and run the local computation. Step through the visual process or reveal all steps. Reset before comparing the second scenario.
+
+## How to try it
+
+Open `/en/app` (English, default) or `/es/app` (Spanish). Change the scenario inputs and run the computation. Inspect the resulting decision, evidence and computed trace. Playback reveals completed local steps; it does not measure a live model. Reset starts a new local scenario. Changing language resets the scenario; the interface displays a reset notice.
+
+The primary demo needs no account, API key or database. Public links refer to the existing deployment; local redesign changes are pending publication.
+
+## Local setup and verification
+
+Requires Node.js 22 and pnpm 10.
+
+```sh
+pnpm install --frozen-lockfile
+pnpm dev
+pnpm test
+node node_modules/typescript/bin/tsc --noEmit --incremental false
+pnpm lint
+pnpm build
+```
+
+Open `http://localhost:3000/en/app`. Recorded validation covers tests, lint, TypeScript and production builds. See [command results](docs/quality/decision-lab-verification.json) and [browser component checks](docs/quality/decision-lab-browser.json). The new browser checks exercise real React components and production CSS with controlled locale navigation; they do not certify Next routes or public deployment.
 
 ## Architecture
 
-```
-lib/arbitro/                # canonical core (TypeScript, tested)
-  agreement.ts              #   pairwise agreement · vote tally · mean confidence
-  arbitrate.ts              #   the arbitration rule (unanimous / majority / escalate)
-  benchmark.ts              #   agreement · escalation rate · arbitration accuracy
-  demo.ts                   #   wires cases into every number
-  data/                     #   cases.json (committed model verdicts + gold)
-  fixtures/                 #   benchmark.json (pinned metrics)
-backend/                    # same math in Python + pytest (authoritative)
-  src/arbitro/              #   agreement.py · arbitrate.py · benchmark.py
-  tests/                    #   pinned to tests/fixtures/{cases,benchmark}.json
-app/                        # Next.js landing + demo dashboard (Vercel, demo mode)
-```
+- `app/[lang]/`: localized browser experience.
+- `lib/experience/`: typed local adapter, validation and run traces.
+- `design-system/`: shared visual tokens, locale controls and execution/replay presentation.
+- `app/api/`: optional server integrations; the primary demo does not require them.
 
-The three "models" are committed, deterministic verdicts (a documented proxy for real model
-calls); the arbitration rule is the real, shared logic. Both languages reproduce the pinned
-agreement / escalation / accuracy numbers to ~1e-10.
+Technology: Next.js 16, TypeScript, Python, Vitest, pytest, Tailwind CSS v4.
 
-## Design decisions & tradeoffs
+## Evidence and limitations
 
-1. **Majority vote with a confidence threshold.** Plain majority would arbitrate every 2-vs-1
-   case; the confidence threshold makes a *thin* majority escalate instead. The cost is a bit
-   more human load; the benefit is not shipping a guess dressed as a decision.
-2. **Pairwise agreement, not Fleiss' kappa.** Pairwise is simpler to interpret and still honest
-   about model concordance. Production would report kappa (chance-corrected) — noted as an
-   upgrade, not hidden.
-3. **Escalation is a feature, not a failure.** Routing ambiguous cases to a human is exactly
-   where the arbitration system earns its keep; the metric exposes it rather than burying it.
+Candidate ballots converge into an arbitration node and review branch.
 
-## What did not work
+Vote distributions and review branches; supplied confidence is not calibrated probability.
 
-- **A confident majority is undetectable by the arbitrator.** c21/c22 show two models agreeing
-  on the wrong label with high confidence; majority voting structurally cannot catch that
-  without an independent correctness signal (e.g., the gold, or a stronger referee model).
-- **The synthetic verdicts are clean.** Real models correlate (shared training), so true
-  agreement is higher than the demo's spread suggests — the demo isolates the *rule* rather
-  than the real-world correlation.
+Shows why ambiguous disagreement is escalated instead of hidden behind a single answer.
 
-## Run it
+**Limits:** Confidence labels are scenario values and are not calibrated probabilities. These portfolio prototypes do not claim measured production impact.
 
-```bash
-# frontend demo + TS tests
-pnpm install && pnpm dev      # http://localhost:3000
-pnpm test                     # 11 vitest tests
+Inputs use fictional or anonymized examples. Optional live integrations require their own credentials and operational setup. Secrets belong in the configured secret manager, never in local secret files or Git. Use the existing `infisical run -- <command>` workflow when live integration is needed. This repository does not publish or deploy automatically as part of the local demo.
 
-# backend (authoritative math) — Python 3.12+
-cd backend && uv sync --extra dev && uv run pytest   # 4 tests, pinned fixtures
-```
-
-## Stack
-
-Next.js 16 · TypeScript · Vitest · Tailwind v4 · Python 3.13 · pytest
+![Actual English demo capture](docs/images/demo.png)
