@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { runExperience } from "./adapter";
+describe("Arbitro experience", () => { it("escalates a fragile majority and resolves a strong majority", async () => { const signal = new AbortController().signal; const fragile = await runExperience({ a: { label: "approve", confidence: 0.4 }, b: { label: "approve", confidence: 0.4 }, c: { label: "deny", confidence: 0.9 }, threshold: 0.6 }, signal, () => undefined); const strong = await runExperience({ a: { label: "approve", confidence: 0.9 }, b: { label: "approve", confidence: 0.8 }, c: { label: "deny", confidence: 0.9 }, threshold: 0.6 }, signal, () => undefined); expect(fragile.result.outcome).toBe("escalated"); expect(strong.result.outcome).toBe("arbitrated"); }); });

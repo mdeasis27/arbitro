@@ -1,0 +1,51 @@
+{
+  "repository": "arbitro",
+  "scope": "Real React component with controlled locale; Next routes not tested.",
+  "checks": [
+    {
+      "locale": "en",
+      "scenarios": [
+        {
+          "preset": "Consensus\nThree approve ballots at confidence 0.90, 0.80, 0.70; threshold 0.60.",
+          "outcome": "Decision resolved\n\n3/3 votes and confidence 0.80 at threshold 0.60."
+        },
+        {
+          "preset": "Disagreement\nApprove / deny / review at 0.90 / 0.55 / 0.55; threshold 0.80.",
+          "outcome": "Escalated to review\n\n1/3 votes and confidence 0.90 at threshold 0.80."
+        }
+      ],
+      "mobileNoOverflow": true,
+      "reducedMotion": true,
+      "keyboard": true,
+      "noRequests": true,
+      "sceneChangesWithScenario": true,
+      "editingClearsPresetAndTrace": true,
+      "resetRestoresFirstPreset": true,
+      "cancelControlPresent": true,
+      "presetRestoresAllInputs": true
+    },
+    {
+      "locale": "es",
+      "scenarios": [
+        {
+          "preset": "Consenso\nTres votos de aprobar con confianza 0.90, 0.80, 0.70; umbral 0.60.",
+          "outcome": "Decisión resuelta\n\n3/3 votos y confianza 0.80 con umbral 0.60."
+        },
+        {
+          "preset": "Desacuerdo\nAprobar / denegar / revisión con 0.90 / 0.55 / 0.55; umbral 0.80.",
+          "outcome": "Escalado a revisión\n\n1/3 votos y confianza 0.90 con umbral 0.80."
+        }
+      ],
+      "mobileNoOverflow": true,
+      "reducedMotion": true,
+      "keyboard": true,
+      "noRequests": true,
+      "sceneChangesWithScenario": true,
+      "editingClearsPresetAndTrace": true,
+      "resetRestoresFirstPreset": true,
+      "cancelControlPresent": true,
+      "presetRestoresAllInputs": true
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,40 @@
+{
+  "en": {
+    "user": "Decision operator handling ambiguous cases",
+    "problem": "Candidate recommendations can disagree without a safe automatic resolution.",
+    "workflow": "Choose consensus or disagreement, inspect local ballots and confidence labels, then resolve or escalate the case.",
+    "decision": "Resolve a case locally or send it to human review.",
+    "value": "Shows why ambiguous disagreement is escalated instead of hidden behind a single answer.",
+    "visual": "Candidate ballots converge into an arbitration node and review branch.",
+    "scenarioA": {
+      "title": "Consensus",
+      "input": "Three approve ballots at confidence 0.90, 0.80, 0.70; threshold 0.60.",
+      "observation": "Aligned ballots resolve locally."
+    },
+    "scenarioB": {
+      "title": "Disagreement",
+      "input": "Approve / deny / review at 0.90 / 0.55 / 0.55; threshold 0.80.",
+      "observation": "Divergent ballots escalate to review."
+    },
+    "limitation": "Confidence labels are scenario values and are not calibrated probabilities."
+  },
+  "es": {
+    "user": "Operador de decisiones que atiende casos ambiguos",
+    "problem": "Recomendaciones candidatas pueden discrepar sin una resolución automática segura.",
+    "workflow": "Elige consenso o desacuerdo, inspecciona boletas locales y etiquetas de confianza, y resuelve o escala el caso.",
+    "decision": "Resolver un caso localmente o enviarlo a revisión humana.",
+    "value": "Muestra por qué un desacuerdo ambiguo se escala en vez de ocultarse tras una sola respuesta.",
+    "visual": "Boletas candidatas convergen en un nodo de arbitraje y una rama de revisión.",
+    "scenarioA": {
+      "title": "Consenso",
+      "input": "Tres votos de aprobar con confianza 0.90, 0.80, 0.70; umbral 0.60.",
+      "observation": "Boletas alineadas se resuelven localmente."
+    },
+    "scenarioB": {
+      "title": "Desacuerdo",
+      "input": "Aprobar / denegar / revisión con 0.90 / 0.55 / 0.55; umbral 0.80.",
+      "observation": "Boletas divergentes se escalan a revisión."
+    },
+    "limitation": "Las etiquetas de confianza son valores de escenario y no probabilidades calibradas."
+  }
+}
