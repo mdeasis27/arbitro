@@ -1,12 +1,11 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
 import type { PlaybackFrame } from "@/design-system/demo/playback";
 import type { TraceEvent } from "@/design-system/demo/types";
 import { StoryStage } from "@/design-system/demo/decision-lab";
 import { OutcomeTape, useReducedMotion } from "@/design-system/demo/project-story";
 import { tapeCounts } from "@/design-system/demo/outcome-tape";
 import type { CaseStatus, JudgedCase, MissionResult } from "./mission";
-import { arbitroCells, landing, playKind, revealedPlays } from "./scene-state";
+import { arbitroCells, currentPlay, landing, playKind, revealedPlays } from "./scene-state";
 import { STORY } from "./story";
 
 // Field in viewBox units: the called bin on the left, the video referee screen on the right, the judges' spot between them.
@@ -16,33 +15,18 @@ const slotXY = (bin: "called" | "video", slot: number) => bin === "called"
   : { x: 260 + (slot % 5) * 28, y: 58 + Math.floor(slot / 5) * 20 };
 const FILL: Record<CaseStatus, string> = { served: "fill-success", rerouted: "fill-info", lost: "fill-danger" };
 const TEXT: Record<CaseStatus, string> = { served: "text-success", rerouted: "text-info", lost: "text-danger" };
-// A doubtful play stays on screen longer so its cards can be read.
-const pauseMs = (c: JudgedCase) => (c.count === 3 && c.status === "served" ? 260 : 900);
 const pct = (x: number) => Math.round(x * 1000) / 10;
 
-export function ArbitroStoryScene({ frame, result, threshold, locale, onSettled }: { frame: PlaybackFrame<TraceEvent>; result: MissionResult; threshold: number; locale: "en" | "es"; onSettled?: () => void }) {
+export function ArbitroStoryScene({ frame, result, threshold, locale }: { frame: PlaybackFrame<TraceEvent>; result: MissionResult; threshold: number; locale: "en" | "es" }) {
   const copy = STORY[locale].scene;
   const reduced = useReducedMotion();
   const items = result.items;
   const n = items.length;
-  const target = revealedPlays(frame, n, reduced);
-
-  // Plays on the field; a new run starts again from zero.
-  const [shown, setShown] = useState(0);
-  const [seen, setSeen] = useState(result);
-  if (seen !== result) { setSeen(result); setShown(0); }
-  const visible = reduced ? n : Math.min(shown, target);
-  const settled = visible >= n && (reduced || shown > n);
-  useEffect(() => {
-    if (reduced || shown > target || (shown === target && target < n)) return;
-    const timer = setTimeout(() => setShown(s => s + 1), shown === 0 ? 0 : pauseMs(items[shown - 1]));
-    return () => clearTimeout(timer);
-  }, [reduced, shown, target, n, items]);
-  const onSettledRef = useRef(onSettled);
-  useEffect(() => { onSettledRef.current = onSettled; });
-  useEffect(() => { if (settled) onSettledRef.current?.(); }, [settled, result]);
-
-  const current = !settled && visible > 0 ? items[visible - 1] : undefined;
+  // The trace player sets the pace: one event per play, so speed and Show all apply here too.
+  const visible = revealedPlays(frame, n, reduced);
+  const at = currentPlay(frame, n, reduced);
+  const current = at === undefined ? undefined : items[at];
+  const settled = visible >= n && current === undefined;
   const cells = arbitroCells(items, visible);
   const c = tapeCounts(cells);
   const spots = landing(items.map(i => i.status));
@@ -95,8 +79,10 @@ export function ArbitroStoryScene({ frame, result, threshold, locale, onSettled 
             })}
           </ol>
           <p className={`mt-3 text-sm font-semibold ${TEXT[current.status]}`}>{copy.verdict[current.status]}</p>
-          <p data-play-line className="mt-1 text-sm leading-6" aria-live="polite">{line(current)}</p>
-        </> : visible >= n ? <p data-scene-summary className="text-sm leading-6" aria-live="polite">{summary}</p> : null}
+          <p data-play-line className="mt-1 text-sm leading-6">{line(current)}</p>
+        </> : null}
+        {/* The only live region: announced once, when every play is in. */}
+        <p data-scene-summary className={settled ? "text-sm leading-6" : "sr-only"} aria-live="polite">{settled ? summary : ""}</p>
       </div>
 
       <div className="mt-4">

@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { tapeCounts } from "@/design-system/demo/outcome-tape";
-import { arbitroCells, landing, playKind, revealedPlays } from "./scene-state";
+import { arbitroCells, currentPlay, landing, playKind, revealedPlays } from "./scene-state";
 import { runMission } from "./mission";
 
 it("hides the plays not revealed yet", () => {
@@ -30,4 +30,11 @@ it("describes a play from its real votes", async () => {
   expect(playKind(result.items[16])).toBe("thin");
   expect(playKind(result.items[20])).toBe("wrong");
   expect(playKind({ ...result.items[18], count: 1 })).toBe("split");
+});
+
+it("the current play is the last one revealed, none once the trace is complete or under reduced motion", () => {
+  expect(currentPlay({ visible: 3, total: 22, complete: false }, 22, false)).toBe(2);
+  expect(currentPlay({ visible: 0, total: 22, complete: false }, 22, false)).toBeUndefined();
+  expect(currentPlay({ visible: 22, total: 22, complete: true }, 22, false)).toBeUndefined();
+  expect(currentPlay({ visible: 3, total: 22, complete: false }, 22, true)).toBeUndefined();
 });

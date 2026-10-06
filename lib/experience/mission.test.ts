@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { runMission, judgeCases, pluralityWrong } from "./mission";
+import { traceCopy } from "./trace-copy";
 
 const counts = (t: number) => {
   const items = judgeCases(t);
@@ -27,7 +28,7 @@ it("without the video referee the plurality decides everything and gets 4 wrong"
   expect(pluralityWrong()).toBe(4);
 });
 
-it("runs the mission, reveals the cases in groups and stops when cancelled", async () => {
+it("runs the mission, reveals the cases one by one and stops when cancelled", async () => {
   const events: string[] = [];
   const run = await runMission({ threshold: .6 }, new AbortController().signal, e => events.push(e.id));
   expect(run.result.items).toHaveLength(22);
@@ -45,4 +46,12 @@ it("carries each play's three votes, the right call and the majority confidence 
   expect(items[16].confidence).toBeCloseTo(.55, 6);
   expect(items[20]).toMatchObject({ status: "lost", gold: "deny", majority: "approve", count: 2 });
   expect(items[20].confidence).toBeCloseTo(.89, 6);
+});
+
+it("plays one trace event per play, so the player's speed and Show all drive the scene", async () => {
+  const run = await runMission({ threshold: .6 }, new AbortController().signal, () => {});
+  expect(run.trace).toHaveLength(22);
+  expect(run.trace.map(e => e.evidenceIds)).toEqual(run.result.items.map(i => [i.id]));
+  expect(run.trace.map(e => e.messageKey)).toEqual(run.result.items.map(i => `play.${i.status}`));
+  for (const key of new Set(run.trace.map(e => e.messageKey))) for (const l of ["en", "es"] as const) expect(traceCopy(l, key)).not.toBe(key);
 });

@@ -10,8 +10,6 @@ export type JudgedCase = { id: string; status: CaseStatus; gold: string; votes: 
 export type MissionInput = { threshold: number };
 export type MissionResult = { items: JudgedCase[]; reviewed: number; wrong: number; comparison: { mine: number; without: number } };
 
-const STEP = 6;
-
 /** Every committed case through the real arbitration rule: settled right, sent to review, or settled wrong. */
 export function judgeCases(threshold: number): JudgedCase[] {
   return getCases().map(c => {
@@ -31,9 +29,10 @@ export const runMission: DemoAdapter<MissionInput, MissionResult> = async (input
   const startedAt = performance.now();
   const items = judgeCases(input.threshold);
   const trace: TraceEvent[] = [];
-  for (let i = 0; i < items.length; i += STEP) {
+  // One event per play: the trace player's pace, speed and Show all drive the scene directly.
+  for (const [i, c] of items.entries()) {
     if (signal.aborted) throw new DOMException("Aborted", "AbortError");
-    const event: TraceEvent = { id: `batch-${i / STEP + 1}`, step: i / STEP + 1, kind: "arbitration", messageKey: `batch.${i / STEP + 1}`, timestampMs: performance.now() - startedAt, evidenceIds: items.slice(i, i + STEP).map(c => c.id) };
+    const event: TraceEvent = { id: `play-${i + 1}`, step: i + 1, kind: "arbitration", messageKey: `play.${c.status}`, timestampMs: performance.now() - startedAt, evidenceIds: [c.id] };
     trace.push(event);
     onEvent(event);
   }

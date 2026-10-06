@@ -12,6 +12,12 @@ export function revealedPlays(frame: { visible: number; total: number; complete:
   return Math.ceil((n * frame.visible) / frame.total);
 }
 
+/** Index of the play being explained: the last one revealed, none once everything is shown. */
+export function currentPlay(frame: { visible: number; total: number; complete: boolean }, n: number, reducedMotion: boolean): number | undefined {
+  const visible = revealedPlays(frame, n, reducedMotion);
+  return reducedMotion || frame.complete || visible === 0 || visible >= n ? undefined : visible - 1;
+}
+
 /** Where each play lands: reviewed plays on the video screen, the rest in the called bin, each in its next free slot. */
 export function landing(statuses: readonly CaseStatus[]): { bin: "called" | "video"; slot: number }[] {
   let called = 0, video = 0;
