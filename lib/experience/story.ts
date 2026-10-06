@@ -54,13 +54,13 @@ export const STORY: Record<"en" | "es", ArbitroStory> = {
     },
     compare: {
       heading: { before: "With the referee", accent: "or without" },
-      lead: "Same plays, same judges. Without the referee, the most voted label decides every play, even a three-way split.",
+      lead: "Same plays, same judges. Without the referee, the label with most votes decides each play. When all three judges disagree, the first judge's label wins.",
       mine: (t) => `With the referee (${pct(t)}%)`,
       without: "Without the referee",
       wrong: "wrong calls",
       sentence: (mine, without) => {
         if (mine === without) return `Both ways ended with ${mine} wrong ${mine === 1 ? "call" : "calls"}.`;
-        if (mine > without) return `This time the referee did worse: ${mine} wrong calls against ${without}.`;
+        if (mine > without) return `This time the referee did worse: ${mine} ${mine === 1 ? "wrong call" : "wrong calls"} against ${without}.`;
         return `With the referee, ${mine} wrong ${mine === 1 ? "call" : "calls"}. Without it, ${without}.`;
       },
       verdict: (n) => n === 0 ? "The referee reviewed no plays" : n === 1 ? "The referee reviewed 1 play" : `The referee reviewed ${n} plays`,
@@ -80,8 +80,8 @@ export const STORY: Record<"en" | "es", ArbitroStory> = {
       summary: "For engineers",
       points: [
         "Unanimous votes are decided. A 2 vs 1 majority is decided only if its mean confidence clears the threshold; a three-way split always goes to review.",
-        "The 22 cases and the rule are shared with the Python backend and pinned by the same fixture.",
-        "Two cases stay wrong until about 89%: a confident majority overruling the one judge who was right. Review only catches doubt, not confident mistakes.",
+        "The 22 cases and the rule are shared with the Python backend and pinned by the same fixture. The tape and the no-referee baseline are computed in TypeScript only.",
+        "Two cases stay wrong until about 89%: a confident majority overruling the one judge who was right. Review catches doubt. A confident mistake goes through.",
         "Stack: Next.js 16, TypeScript, Python, Vitest, pytest.",
       ],
       repoLabel: "Source code",
@@ -136,13 +136,13 @@ export const STORY: Record<"en" | "es", ArbitroStory> = {
     },
     compare: {
       heading: { before: "Con árbitro", accent: "o sin él" },
-      lead: "Mismas jugadas, mismos jueces. Sin árbitro, la etiqueta más votada decide cada jugada, aunque los tres jueces digan algo distinto.",
+      lead: "Mismas jugadas, mismos jueces. Sin árbitro, la etiqueta con más votos decide cada jugada. Cuando los tres jueces dicen algo distinto, gana la del primer juez.",
       mine: (t) => `Con árbitro (${pct(t)}%)`,
       without: "Sin árbitro",
       wrong: "marcaciones equivocadas",
       sentence: (mine, without) => {
         if (mine === without) return `Las dos formas terminaron con ${mine} ${mine === 1 ? "marcación equivocada" : "marcaciones equivocadas"}.`;
-        if (mine > without) return `Esta vez al árbitro le fue peor: ${mine} marcaciones equivocadas contra ${without}.`;
+        if (mine > without) return `Esta vez al árbitro le fue peor: ${mine} ${mine === 1 ? "marcación equivocada" : "marcaciones equivocadas"} contra ${without}.`;
         return `Con árbitro, ${mine} ${mine === 1 ? "marcación equivocada" : "marcaciones equivocadas"}. Sin él, ${without}.`;
       },
       verdict: (n) => n === 0 ? "El árbitro no revisó ninguna jugada" : n === 1 ? "El árbitro revisó 1 jugada" : `El árbitro revisó ${n} jugadas`,
@@ -162,8 +162,8 @@ export const STORY: Record<"en" | "es", ArbitroStory> = {
       summary: "Para ingenieros",
       points: [
         "Un voto unánime se decide. Una mayoría de 2 contra 1 se decide solo si su confianza promedio pasa el umbral; si los tres votan distinto, siempre va a revisión.",
-        "Los 22 casos y la regla se comparten con el backend en Python y los fija el mismo fixture.",
-        "Dos casos siguen mal hasta cerca de 89%: una mayoría muy segura que le gana al único juez que tenía razón. La revisión solo atrapa la duda, no los errores seguros.",
+        "Los 22 casos y la regla se comparten con el backend en Python y los fija el mismo fixture. La tira y la comparación sin árbitro se calculan solo en TypeScript.",
+        "Dos casos siguen mal hasta cerca de 89%: una mayoría muy segura que le gana al único juez que tenía razón. La revisión atrapa la duda. Un error muy seguro pasa de largo.",
         "Stack: Next.js 16, TypeScript, Python, Vitest, pytest.",
       ],
       repoLabel: "Código fuente",

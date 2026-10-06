@@ -18,7 +18,7 @@ export function judgeCases(threshold: number): JudgedCase[] {
   });
 }
 
-/** Without the referee the most voted label decides every case (a 3-way split falls to the first label). */
+/** Without the referee the label with most votes decides; tally keeps vote order, so a 3-way split falls to the first judge. */
 export function pluralityWrong(): number {
   return getCases().filter(c => [...tally(c).entries()].sort((a, b) => b[1] - a[1])[0][0] !== c.gold).length;
 }
