@@ -35,3 +35,9 @@ describe("Arbitro story copy", () => {
     expect(STORY.es.scene.reviewedOf(1, 22)).toBe("Jugadas revisadas: 1 de 22");
   });
 });
+
+it("explains each play with the real numbers", () => {
+  expect(STORY.es.scene.lines.thin("Aprobar", 55, 60)).toBe("Dos jueces dicen Aprobar, pero con 55% de confianza no llegan al 60%. Va al árbitro de video.");
+  expect(STORY.en.scene.lines.wrong("Approve", 89, "Deny")).toContain("The right call was Deny");
+  expect(STORY.es.scene.summary(60, 16, 4, 2)).toBe("Con 60%: marcadas bien 16, al árbitro de video 4, marcadas mal 2.");
+});
