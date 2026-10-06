@@ -1,6 +1,6 @@
 import type { Heading } from "@/design-system/demo/project-story";
 
-type NodeCopy = { name: string; sub: string; analogy: string };
+type Line = (label: string, confidence: number, other: number | string) => string;
 
 export interface ArbitroStory {
   name: string;
@@ -13,7 +13,13 @@ export interface ArbitroStory {
   fit: { heading: Heading; worthLabel: string; worth: string; notLabel: string; not: string };
   proves: { heading: Heading; text: string };
   engineers: { summary: string; points: string[]; repoLabel: string };
-  scene: { title: string; caption: string; statusLabels: { active: string; danger: string; success: string }; tapeLabel: string; nodes: { plays: NodeCopy; judges: NodeCopy; settled: NodeCopy; referee: NodeCopy }; tape: { served: string; rerouted: string; lost: string }; reviewedOf: (n: number, total: number) => string };
+  scene: {
+    title: string; caption: string; tapeLabel: string; tape: { served: string; rerouted: string; lost: string }; reviewedOf: (n: number, total: number) => string;
+    calledBin: string; video: string; judge: (n: number) => string; labels: Record<string, string>; playOf: (n: number, total: number) => string;
+    verdict: { served: string; rerouted: string; lost: string };
+    lines: { unanimous: (label: string) => string; called: Line; thin: Line; split: () => string; wrong: Line };
+    summary: (threshold: number, served: number, reviewed: number, wrong: number) => string;
+  };
 }
 
 const pct = (t: number) => Math.round(t * 100);
@@ -88,17 +94,24 @@ export const STORY: Record<"en" | "es", ArbitroStory> = {
     },
     scene: {
       title: "How each play was called",
-      caption: "Watch the judges vote play by play, and see which ones go to the video referee.",
-      statusLabels: { active: "voting", success: "in use", danger: "made wrong calls" },
+      caption: "Each ball is one play. The three judges raise their cards, and the doubtful plays go to the video referee.",
       tapeLabel: "Twenty-two plays, in order",
-      nodes: {
-        plays: { name: "Plays", sub: "22 requests", analogy: "the plays" },
-        judges: { name: "Judges", sub: "3 models", analogy: "the judges" },
-        settled: { name: "Called", sub: "decided by votes", analogy: "the call stands" },
-        referee: { name: "Review", sub: "a person checks", analogy: "the video referee" },
-      },
       tape: { served: "called right", rerouted: "reviewed", lost: "called wrong" },
       reviewedOf: (n, total) => `Plays reviewed: ${n} of ${total}`,
+      calledBin: "Called",
+      video: "Video referee",
+      judge: (n) => `Judge ${n}`,
+      labels: { approve: "Approve", deny: "Deny", review: "Review" },
+      playOf: (n, total) => `Play ${n} of ${total}`,
+      verdict: { served: "✓ The call stands", rerouted: "▶ To the video referee", lost: "× Called wrong" },
+      lines: {
+        unanimous: (label) => `All three judges say ${label}. The call stands.`,
+        called: (label, c, t) => `Two judges say ${label} with ${c}% confidence, enough for ${t}%. The call stands.`,
+        thin: (label, c, t) => `Two judges say ${label}, but ${c}% confidence falls short of ${t}%. It goes to the video referee.`,
+        split: () => "Each judge says something different. It goes to the video referee.",
+        wrong: (label, c, gold) => `The judges call ${label} with ${c}% confidence and the call stands. The right call was ${gold}, so it is called wrong.`,
+      },
+      summary: (t, served, reviewed, wrong) => `At ${t}%: called right ${served}, sent to the video referee ${reviewed}, called wrong ${wrong}.`,
     },
   },
   es: {
@@ -170,17 +183,24 @@ export const STORY: Record<"en" | "es", ArbitroStory> = {
     },
     scene: {
       title: "Cómo se marcó cada jugada",
-      caption: "Mira cómo votan los jueces jugada por jugada, y cuáles van al árbitro de video.",
-      statusLabels: { active: "votando", success: "en uso", danger: "marcó jugadas mal" },
+      caption: "Cada pelota es una jugada. Los tres jueces levantan su tarjeta y las jugadas dudosas van al árbitro de video.",
       tapeLabel: "Veintidós jugadas, en orden",
-      nodes: {
-        plays: { name: "Jugadas", sub: "22 solicitudes", analogy: "las jugadas" },
-        judges: { name: "Jueces", sub: "3 modelos", analogy: "los jueces" },
-        settled: { name: "Marcada", sub: "la deciden los votos", analogy: "la marcación queda" },
-        referee: { name: "Revisión", sub: "una persona revisa", analogy: "el árbitro de video" },
-      },
       tape: { served: "marcada bien", rerouted: "revisada", lost: "marcada mal" },
       reviewedOf: (n, total) => `Jugadas revisadas: ${n} de ${total}`,
+      calledBin: "Marcadas",
+      video: "Árbitro de video",
+      judge: (n) => `Juez ${n}`,
+      labels: { approve: "Aprobar", deny: "Negar", review: "Revisar" },
+      playOf: (n, total) => `Jugada ${n} de ${total}`,
+      verdict: { served: "✓ Se marca", rerouted: "▶ Al árbitro de video", lost: "× Marcada mal" },
+      lines: {
+        unanimous: (label) => `Los tres jueces dicen ${label}. Se marca.`,
+        called: (label, c, t) => `Dos jueces dicen ${label} con ${c}% de confianza, suficiente para ${t}%. Se marca.`,
+        thin: (label, c, t) => `Dos jueces dicen ${label}, pero con ${c}% de confianza no llegan al ${t}%. Va al árbitro de video.`,
+        split: () => "Cada juez dice algo distinto. Va al árbitro de video.",
+        wrong: (label, c, gold) => `Los jueces marcan ${label} con ${c}% de confianza y se marca. La correcta era ${gold}: marcada mal.`,
+      },
+      summary: (t, served, reviewed, wrong) => `Con ${t}%: marcadas bien ${served}, al árbitro de video ${reviewed}, marcadas mal ${wrong}.`,
     },
   },
 };

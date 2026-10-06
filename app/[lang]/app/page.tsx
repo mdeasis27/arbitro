@@ -22,13 +22,14 @@ export default function Page() {
   const demo = useDemoRun(runMission);
   const run = demo.run;
   const result = run?.result;
-  // Section 03 waits for the tape to finish; keyed to the trace so every new run resets it.
+  // Section 03 waits for the trace and for the last play to land; keyed to the run so every new run resets it.
   const [playedTrace, setPlayedTrace] = useState<typeof demo.trace | null>(null);
-  const played = demo.trace.length === 0 || playedTrace === demo.trace;
+  const [settledResult, setSettledResult] = useState<typeof result | null>(null);
+  const played = (demo.trace.length === 0 || playedTrace === demo.trace) && settledResult === result;
   const clear = () => { setPrediction(null); demo.reset(); };
   const reset = () => { setThreshold(DEFAULT_THRESHOLD); clear(); };
   const input = { threshold };
-  const scene = (frame: typeof COMPLETE_FRAME) => result ? <ArbitroStoryScene frame={frame} result={result} locale={locale} /> : null;
+  const scene = (frame: typeof COMPLETE_FRAME) => result ? <ArbitroStoryScene frame={frame} result={result} threshold={run.input.threshold} locale={locale} onSettled={() => setSettledResult(result)} /> : null;
 
   return <main className="mx-auto max-w-5xl px-5 py-8 text-foreground sm:py-12">
     <StoryHero name={t.name} oneLiner={t.oneLiner} chips={t.chips} />

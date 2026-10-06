@@ -37,3 +37,12 @@ it("runs the mission, reveals the cases in groups and stops when cancelled", asy
   const ctl = new AbortController(); ctl.abort();
   await expect(runMission({ threshold: .6 }, ctl.signal, () => {})).rejects.toThrow();
 });
+
+it("carries each play's three votes, the right call and the majority confidence the scene animates", () => {
+  const items = judgeCases(.6);
+  expect(items[0]).toMatchObject({ id: "c01", gold: "approve", majority: "approve", count: 3, votes: [{ label: "approve", confidence: .91 }, { label: "approve", confidence: .88 }, { label: "approve", confidence: .86 }] });
+  expect(items[16]).toMatchObject({ status: "rerouted", gold: "approve", majority: "approve", count: 2 });
+  expect(items[16].confidence).toBeCloseTo(.55, 6);
+  expect(items[20]).toMatchObject({ status: "lost", gold: "deny", majority: "approve", count: 2 });
+  expect(items[20].confidence).toBeCloseTo(.89, 6);
+});

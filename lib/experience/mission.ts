@@ -1,10 +1,12 @@
 import { arbitrate } from "@/lib/arbitro/arbitrate";
 import { tally } from "@/lib/arbitro/agreement";
 import { getCases } from "@/lib/arbitro/demo";
+import type { ModelOutput } from "@/lib/arbitro/types";
 import type { DemoAdapter, TraceEvent } from "./types";
 
 export type CaseStatus = "served" | "rerouted" | "lost";
-export type JudgedCase = { id: string; status: CaseStatus };
+/** One play: its outcome plus the three votes, the label with most votes and that label's mean confidence. */
+export type JudgedCase = { id: string; status: CaseStatus; gold: string; votes: ModelOutput[]; majority: string; count: number; confidence: number };
 export type MissionInput = { threshold: number };
 export type MissionResult = { items: JudgedCase[]; reviewed: number; wrong: number; comparison: { mine: number; without: number } };
 
@@ -14,7 +16,9 @@ const STEP = 6;
 export function judgeCases(threshold: number): JudgedCase[] {
   return getCases().map(c => {
     const v = arbitrate(c, threshold);
-    return { id: c.id, status: v.outcome === "escalated" ? "rerouted" : v.label === c.gold ? "served" : "lost" };
+    const majority = [...tally(c).entries()].sort((a, b) => b[1] - a[1])[0][0];
+    const status: CaseStatus = v.outcome === "escalated" ? "rerouted" : v.label === c.gold ? "served" : "lost";
+    return { id: c.id, status, gold: c.gold, votes: [c.a, c.b, c.c], majority, count: v.votes, confidence: v.confidence };
   });
 }
 
