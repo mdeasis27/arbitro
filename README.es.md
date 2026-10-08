@@ -4,7 +4,7 @@
 [![CI](https://github.com/mdeasis27/arbitro/actions/workflows/ci.yml/badge.svg)](https://github.com/mdeasis27/arbitro/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 <!-- /community-badges -->
 
-[English](README.md) · [Probar demo](https://arbitro-manueldeasis27-2515s-projects.vercel.app/es/app) · [Caso de estudio](https://manueldeasis.com/es/projects/arbitro) · [Código](https://github.com/mdeasis27/arbitro)
+[English](README.md) · [Probar demo](https://arbitro-manueldeasis27-2515s-projects.vercel.app/es/app) · [Caso de estudio](https://portafolio-mdea.vercel.app/es/projects/arbitro) · [Código](https://github.com/mdeasis27/arbitro)
 
 ![Interfaz interactiva local real](docs/images/cover.png)
 
